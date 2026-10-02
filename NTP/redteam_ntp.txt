@@ -1,0 +1,23 @@
+Escenario de laboratorio
+
+Objetivo: entender cómo un atacante podría desviar peticiones NTP y probar cómo 
+defenderse con NTPsec y NTS.
+
+2.1. Montar un AP falso
+
+En un entorno aislado, se crea un Access Point controlado.
+
+Se podría usar algo como hostapd para levantar la red Wi-Fi falsa.
+
+2.2. Redirección de DNS
+
+Configurar el DNS del AP para resolver, por ejemplo, time.google.com hacia la IP de un 
+servidor NTP controlado en la LAN.
+
+Esto se puede hacer con un DNS local como dnsmasq o bind en modo laboratorio.
+
+2.3. Servidor NTP manipulado
+
+En ese servidor NTP falso, devolver respuestas intencionalmente incorrectas para ver el impacto.
+
+Esto permite observar cómo un cliente sin autenticación acepta una hora errónea.

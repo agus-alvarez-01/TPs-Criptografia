@@ -1,0 +1,35 @@
+a. ¿ Cuáles son los TRES métodos que se utilizan en la ingeniería social para obtener acceso a la
+información ?
+
+Los tres métodos principales son por Acceso electrónico (como correos, páginas web o mensajes), 
+Acceso físico (acceso a un lugar, dispositivo o equipo), y Redes sociales (se obtiene información 
+de las personas a través de sus perfiles y publicaciones para usarla en un ataque)
+
+b. Mencionen tres ejemplos de ataques de ingeniería social de los primeros dos métodos del paso anterior.
+
+Phishing: envío de correos electrónicos falsos que aparentan provenir de una organización legítima 
+para obtener credenciales u otra información.
+
+Baiting: utilizar una memoria USB infectada, y dejarla al alcance de una persona para que la utilice  
+y conseguir vulnerar su sistema.
+
+Tailgating: un atacante sigue a una persona autorizada para ingresar a una zona restringida, 
+aprovechando el acceso legítimo de esa persona y conseguir información.
+
+c. ¿ Considera que las redes sociales son una amenaza de ingeniería social ? ¿ Por qué ?
+
+Si, porque hay demasiada información personal expuesta, no solamente propia sino que tus contactos tambien pueden 
+aportar información sobre vos.
+
+d. ¿ Qué puede hacer una organización para defenderse de ataques de ingeniería social ?
+
+Una organización debe implementar capacitación y concientización en seguridad para que sus empleados 
+puedan reconocer y evitar ataques de ingeniería social. 
+También es importante establecer procedimientos para verificar la identidad de las personas que solicitan 
+información o acceso, utilizar filtros de correo electrónico, mantener los sistemas actualizados y aplicar 
+mecanismos como la autenticación multifactor.
+
+e. ¿ Qué es el SANS Institute, el autor de este artículo ?
+
+El SANS Institute es una organización dedicada a la investigación, capacitación y certificación en seguridad de la 
+información y ciberseguridad. 
