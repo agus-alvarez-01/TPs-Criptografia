@@ -38,7 +38,81 @@ Ademas, figuran la version del protocolo, el defasaje y retardo que tengo.
 - **¿Puedes realizar un ataque de tipo Man-in-the-Middle (MitM) sobre un servicio NTP? ¿Puedes implementarlo?**
 
 
-Si, usando 3 maquinas virtuales y generando una red interna, donde una maquina es el server, otra el cliente y otra el MITM.
+Si, pude implementarlo usando 3 maquinas virtuales en VirtualBox, donde una maquina es el server, otra el cliente y otra el MITM.
+Genere una red interna entre ellas y a cada maquina le configure su IP:
+
+![](Config-red-interna.png)
+
+![](asignacion-IP.png)
+
+Quedando:
+
+| Cliente-NTP | `192.168.56.10` |
+| Server-NTP  | `192.168.56.20` | 
+| MITM-NTP    | `192.168.56.30` |
+
+Y todo en una red interna `NTP-LAB`.
+
+En `Server-NTP` hay que modificar `/etc/ntp.conf` para utilizar el propio reloj del servidor como referencia, y permitir el acceso desde `NTP-LAB`, para que `Cliente-NTP` lo pueda usar.
+
+Se reinicia el servicio ntp y verifico que el puerto UDP 123 este escuchando
+```bash
+sudo systemctl restart ntp
+sudo ss -lunp | grep ':123'
+```
+
+Desde el `Cliente-NTP` se configura `/etc/ntp.conf` para que lo use el reloj del server y se reinicia el servicio NTP.
+Para comprobar la sincronización se ejecuta `ntpq -p` y en la sección de `remote` debe estar apuntando al IP del server.
+
+![](<ntpq -p y date - Cliente-NTP.png>)
+
+Ahora la idea es que `MITM-NTP` haga de intermediario.
+Lo primero que intente fue reenviar paquetes sin modificar nada, para eso hay una forma de hacer andar a la maquina como router configurando el `ip_forward` en 1, e instale una herramienta `ARP spoofing` para poder interceptar los paquetes entre el server y el cliente.
+Para instalarla tuve que agregar un segundo adaptador NAT a la máquina `MITM-NTP`, porque la red `NTP-LAB` estaba aislada y no tenía acceso a Internet.
+
+```bash
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo apt install dsniff #ARP spoofing
+```
+Para intercetar los paquetes hay que usar dos instancias de arpspoof, en dos terminales.
+
+Terminal 1:
+```bash
+sudo arpspoof -i enp0s3 -t 192.168.56.10 192.168.56.20
+```
+Asocia la dirección de `Cliente-NTP` con la MAC de `MITM-NTP`
+Terminal 2:
+```bash
+sudo arpspoof -i enp0s3 -t 192.168.56.20 192.168.56.10
+```
+Asocia la dirección de `Server-NTP` con la MAC de `MITM-NTP`
+
+> Aclaración: `enp0s3` es el nombre de una interfaz de red en Linux.
+
+Para observar el tráfico NTP desde se utilizó:
+```bash
+sudo tcpdump -i enp0s3 -n udp port 123
+```
+
+![](trafico-tcpdump.png)
+
+> En `Cliente-NTP` se ejecutó `ntpq -p`, y se observa que en `MITM-NTP` está la consulta a `Server-NTP` y respuesta.
+> ```text
+> 16:52:02.904575 IP 192.168.56.10.123 > 192.168.56.20.123: NTPv4, Client, length 48
+> 16:52:02.905294 IP 192.168.56.20.123 > 192.168.56.10.123: NTPv4, Server, length 48
+>```
+
+Ahora para simular el ataque, hago que a `Server-NTP` no le lleguen las consultas, ejecutando en `MITM-NTP`: `sudo sysctl -w net.ipv4.ip_forward=0`.
+
+Genero un script en python para que de respuestas NTP falsificadas.
+
+Esto provoca que `MITM-NTP` de repuesta como si fuese `Server-NTP`
+
+![](offset-enorme.png)
+
+La parte de abajo está `MITM-NTP` ejecutando el script de python y capturando el trafico, y arriba esta `Cliente-NTP` ejecuntando `ntpq -p`.
+Se logra ver que el offset calculado por ntp es de -34 ms, y cuando reinicio el servicio con `sudo systemctl restart ntp` y ejecuto de vuelta `ntpq -p` ya toma la respuesta falsa de `MITM-NTP`, con un offset de +208587 ms.
+Al ejecutar  `timedatectl` figura que el reloj está desincronizado, pero no logro modificar efectivamente la hora.
 
 
 
