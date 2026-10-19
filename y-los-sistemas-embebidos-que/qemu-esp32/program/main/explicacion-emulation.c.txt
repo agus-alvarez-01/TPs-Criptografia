@@ -1,0 +1,4 @@
+El main invoca a `psa_crypto_init()` para habilitar la API de *PSA Crypto*.
+Para la prueba de Hashing (SHA-256) toma una cadena de texto seteada ("Hola criptografía 2026") y calcula su *digest* de 256 bits mediante `psa_hash_compute()`, imprimiendo el resultado en formato hexadecimal.
+Para el cifrado simétrico (AES-128) configura una clave simétrica de 128 bits e IV (vector de inicialización)mediante atributos de clave PSA (`psa_import_key`), y ejecuta el cifrado del bloque con `psa_cipher_encrypt()`.
+Para la firma digital (ECDSA) se definen parámetros para la curva elíptica, se generan un par de claves asimétricas (`psa_generate_key`) y firma un hash empleando `psa_sign_hash()`.
