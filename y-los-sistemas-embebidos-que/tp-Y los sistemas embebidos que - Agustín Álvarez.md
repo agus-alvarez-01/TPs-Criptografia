@@ -79,7 +79,7 @@ docker run --name qemu-esp32 --rm -i -p 8080:80 -t qemu-esp32 bash
 idf
 ```
 
-Luego dentro de `program/main` en el archivo `emulation.c` modifique el codigo generando los scrits para hash (SHA-256), encripción simétrica (AES-128) y firma digital (ECDSA), los cuales utilizan la libreria `PSA Crypto`.
+Luego dentro de `program/main` en el archivo `emulation.c` modifique el codigo generando los scripts para hash (SHA-256), encripción simétrica (AES-128) y firma digital (ECDSA), los cuales utilizan la libreria `PSA Crypto`.
 
 En otra terminal copie el archivo `emulation.c` hacia el docker ya levantado:
 
@@ -91,7 +91,7 @@ En la terminal de docker se compila el firmware, se empaqueta la imagen flash y 
 ```bash
 idf.py build -C program
 ./flash.sh program/build/emulation.bin
-qemu-system-xtensa -nographic -M esp32 -m 4 -drive file=flash.bin,if=mtd,format=raw -nic user,model=open_eth,hostfwd=tcp::80-:80
+qemu-system-xtensa -nographic -M esp32 -m 4 -drive file=flash.bin,if=mtd,format=raw
 ```
 
 ![](<img/docker run.png>)
