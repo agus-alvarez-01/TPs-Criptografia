@@ -58,3 +58,46 @@ Actualización y Parcheo de Firmware: Aplicar las actualizaciones de seguridad y
 Inspección de Trafico de Red y Firewalls Embebidos: Implementar reglas de filtrado e inspección de paquetes en los conmutadores y firewalls de la red médica/industrial para detectar y bloquear tramas de datos anómalas o manipuladas.
 
 Aislamiento de Dispositivos: Aislar los dispositivos médicos y sistemas de control embebidos en redes locales virtuales (VLANs), impidiendo su exposición directa a redes públicas.
+
+---
+
+## QEMU_ESP32
+
+Para realizar los ejemplos de las filminas de Seguridad en sistemas embebidos, utilice el repositorio de `mluis/qemu-esp32`.
+
+```bash
+git clone https://github.com/mluis/qemu-esp32.git
+```
+### Ejecución
+
+Segui los pasos del archivo README.md para poder usarlo:
+
+```bash
+cd qemu-esp32/
+docker build . -t qemu-esp32
+docker run --name qemu-esp32 --rm -i -p 8080:80 -t qemu-esp32 bash
+idf
+```
+
+Luego dentro de `program/main` en el archivo `emulation.c` modifique el codigo generando los scrits para hash (SHA-256), encripción simétrica (AES-128) y firma digital (ECDSA), los cuales utilizan la libreria `PSA Crypto`.
+
+En otra terminal copie el archivo `emulation.c` hacia el docker ya levantado:
+
+```bash
+docker cp program/main/emulation.c qemu-esp32:/root/program/main/emulation.c
+```
+En la terminal de docker se compila el firmware, se empaqueta la imagen flash y se arranca el emulador QEMU.
+
+```bash
+idf.py build -C program
+./flash.sh program/build/emulation.bin
+qemu-system-xtensa -nographic -M esp32 -m 4 -drive file=flash.bin,if=mtd,format=raw -nic user,model=open_eth,hostfwd=tcp::80-:80
+```
+
+![](<img/docker run.png>)
+
+![](<img/qemu run.png>)
+
+### Código
+Link al repositorio para ver emulation.c: 
+
