@@ -99,5 +99,4 @@ qemu-system-xtensa -nographic -M esp32 -m 4 -drive file=flash.bin,if=mtd,format=
 ![](<img/qemu run.png>)
 
 ### Código
-Link al repositorio para ver emulation.c: 
-
+Link al repositorio para ver emulation.c: https://github.com/agus-alvarez-01/TPs-Criptografia/blob/main/y-los-sistemas-embebidos-que/qemu-esp32/program/main/emulation.c
