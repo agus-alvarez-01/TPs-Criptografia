@@ -129,7 +129,7 @@ Estado inicial:
 
 ![](<img control de acceso/fail2ban.png>)
 
-Primeros 3 intentos de contraseña mal puesta:
+Primeros 3 intentos de contraseña incorrecta:
 
 ![](<img control de acceso/primer-intento.png>)
 
@@ -140,6 +140,7 @@ Baneado:
 ![](<img control de acceso/baneado-ssh.png>)
 
 > ¿que sucede? 
+
 Despues de 5 intentos quede baneado desde mi host para ingresar por ssh a la VM.
 
 > cual es la salida del comando “sudo iptables -L” ?
@@ -147,7 +148,6 @@ Despues de 5 intentos quede baneado desde mi host para ingresar por ssh a la VM.
 Mi IP aparece en REJECT:
 
 ![](<img control de acceso/iptables -L.png>)
-
 
 ## Reflexión
 
