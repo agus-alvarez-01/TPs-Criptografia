@@ -110,6 +110,7 @@ openssl aes-256-cbc -d -a -pbkdf2 -in file_secret.enc -out file_secret -k key.bi
 ![](img/decrypt-file-secret.png)
 
 ---
+---
 
 # Criptografía y Certificados Digitales en la Práctica
 
@@ -165,3 +166,149 @@ Un certificado puede perder su validez antes del tiempo estipulado por diversas 
 CRL y OCSP aseguran que un cliente no confíe en un certificado comprometido aunque todavía no haya vencido por fecha calendarizada.
 
 -----------------------------------------------
+
+## PARTE 2: Despliegue Práctico (Let's Encrypt)
+
+> Primero: ¿Que es Let's Encrypt?
+
+Let's Encrypt es una Autoridad de Certificación (CA) gratuita, automatizada y abierta, gestionada por el grupo de investigación de interés público Internet Security Research Group (ISRG).
+Su objetivo principal es hacer que el cifrado en la Web (el protocolo HTTPS) sea accesible para todo el mundo, eliminando el costo económico y la complejidad técnica de obtener certificados SSL/TLS.
+
+---
+
+En VM instalo Nginx, inicio el servicio y verifico si funciona:
+```bash
+sudo apt install nginx -y
+sudo systemctl start nginx
+sudo systemctl status nginx
+```
+![](<img/status nginx.png>)
+
+Para crear un dominio gratuito use "DuckDNS", https://www.duckdns.org/ .
+
+Hice el login y genere un dominio:
+
+![](img/DockDNS.png)
+
+Para asociar el dominio dentro de Nginx creo un archivo de configuración con mi dominio, y la activo:
+
+```bash
+sudo nano /etc/nginx/sites-available/duckdns.conf
+```
+![](img/config-duckdns.png)
+
+```bash
+sudo ln -s /etc/nginx/sites-available/duckdns.conf /etc/nginx/sites-enabled/
+sudo systemctl reload nginx
+```
+
+Para solicitar un certificado a Let's Encrypt instalo Certbot, el plugin de Certbot para DuckDNS y solicito el certificado usando DNS-01:
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+sudo apt install python3-pip -y
+sudo pip3 install certbot-dns-duckdns
+sudo certbot certonly \
+  --authenticator dns-duckdns \
+  --dns-duckdns-token 10501c82-f447-4540-b9dd-beda439fbc92 \
+  --dns-duckdns-propagation-seconds 60 \
+  -d tp-openssl.duckdns.org
+```
+![](img/certbot.png)
+
+Vinculo el certificado generado a Nginx:
+```bash
+sudo nano /etc/nginx/sites-available/duckdns.conf
+```
+![](img/config-duckdns2.png)
+
+Recargo y pruebo la renovación automática:
+```bash
+sudo systemctl reload nginx
+sudo certbot renew --dry-run
+```
+![](img/certbot-renew.png)
+
+---
+
+### Mecanismo de validación
+
+> ¿Qué método de validación o "desafío" (challenge) utilizaste (ej. HTTP-01 o DNS-01) y cómo demostró este proceso a la CA que tú tienes el control real sobre ese dominio?
+
+Se utilizó el desafío DNS-01, mediante el plugin certbot-dns-duckdns y la API de DuckDNS.
+
+Al ejecutar Certbot, este interactúa con Let's Encrypt mediante el protocolo ACME para solicitar un certificado para mi dominio `tp-openssl.duckdns.org`.
+La Autoridad de Certificación (CA) le entrega a Certbot un token criptográfico único. 
+A través de la API de DuckDNS y usando el token de autenticación del usuario, Certbot crea automáticamente un registro DNS de tipo TXT en los servidores de nombres de DuckDNS.
+Let's Encrypt realiza consultas DNS públicas a nivel global buscando ese registro TXT en el subdominio.
+Al comprobar que el registro TXT existe en el DNS y que su contenido coincide con la firma solicitada, Let's Encrypt verifica la propiedad y el control administrativo del dominio. Con esto aprueba la emisión del certificado digital. 
+
+### Duración de la confianza
+
+> ¿cuáles son las dos principales ventajas de tener una vida útil tan corta?
+
+Reduce el impacto si una clave privada se filtra o se compromete, si un atacante logra robar la clave privada o el certificado de tu servidor, solo podrá usarlo durante un tiempo muy corto.
+Y fuerza la automatización, al vencer cada 3 meses, es tedioso renovar los certificados a mano, esto obliga a configurar sistemas de renovación automática (como Certbot). Si mañana se descubre una falla crítica de seguridad y la CA necesita revocar y cambiar todos los certificados, tu servidor ya estará preparado para renovarse automáticamente.
+
+### Automatización
+
+> ¿Por qué la automatización (ej. un cron job de Certbot) es un requisito casi obligatorio bajo el modelo de Let's Encrypt?
+
+La automatización es un requisito casi obligatorio porque la carga manual es mucha y el riesgo de olvido es alto.
+Automatizar evita la caída de servicios y bloqueos de seguridad, si un certificado expira sin renovarse, los navegadores bloquean inmediatamente el acceso al sitio mostrando pantallas rojas de advertencia (*"Conexión no segura"*), interrumpiendo el servicio.
+
+---
+
+## PARTE 3: Análisis de la Cadena de Confianza y Criptografía
+
+Para ver el certificado no pude acceder desde el dominio, pero si buscado la IP de la VM en mi host.
+
+![](img/General-cert.png)
+
+![](img/Detalle.png)
+
+### Inspección de campos
+
+> ¿Quién es el Issuer (Emisor) y quién es el Subject (Sujeto)?
+
+`Let's Encrypt` es el emisor, y `tp-openssl.duckdns.org` el sujeto.
+
+>​ ¿Qué algoritmo de clave asimétrica se está utilizando para la clave pública (ej. RSA, ECDSA) y de qué tamaño es la clave (ej. 2048 bits, secp256r1)?
+
+Se está utilizando el algoritmo RSA y el tamaño de la clave es 2048 bits.
+
+### Trazando la ruta (Chain of Trust)
+
+> Escribe la cadena exacta de firmas desde tu certificado Leaf hasta el certificado Root en el que confía tu navegador (ej. ISRG Root X1).
+
+ISRG Root X1 (CA Raíz) --> Root YR --> YR2 --> tp-openssl.duckdns.org (Certificado final / Leaf)
+
+### Seguridad del ecosistema (Claves Raíz Offline)
+
+> ¿Por qué el certificado de tu sitio web fue firmado por una CA Intermedia (ej. Let's Encrypt R3) y no directamente por la clave privada de la CA Raíz?
+
+Es una forma de protección para la CA Raíz, al ser firmado por una CA intermedia se aisla la CA Raíz, incluso la clave privada se mantiene fuera de línea (offline), almacenada en hardware de máxima seguridad en instalaciones físicas protegidas. Solo se enciende de forma excepcional para firmar certificados de CAs Intermedias.
+Las CAs Intermedias operan online para gestionar las firmas diarias. Si una CA Intermedia se compromete, puede ser revocada por la CA Raíz sin afectar el funcionamiento general.
+
+### Validación matemática de la Firma Digital
+
+> ¿Cómo utiliza la clave pública de la CA Intermedia para verificar la "Firma Digital" (Signature) de tu certificado y asegurar que no ha sido alterado?
+
+La CA Intermedia genera la firma digital cifrando el resumen (hash) del certificado con su propia clave privada. Para comprobarlo, el navegador toma esa firma digital y la desencripta utilizando la clave pública de la CA Intermedia (que obtiene del certificado emisor). De este modo, se extrae el hash original calculado por la CA. 
+
+Luego, el navegador calcula su propio hash (usando el mismo algoritmo) sobre todos los campos del certificado recibido (el nombre de dominio, la clave pública del sitio, las fechas de validez, etc), y compara los dos valores, el hash desencriptado (extraído de la firma) y el hash calculado (generado localmente).   
+
+Ambos hash deben ser iguales, garantizando Integridad (si se modificó algo los hash's serian distintos) y Autenticidad del origen (el hash original solo pudo haber sido cifrado con la clave privada de la CA Intermedia y la clave pública de la CA es la única capaz de desencriptarlo).
+
+### Almacén de confianza (Trust Store)
+
+> ¿De dónde saca tu sistema operativo o navegador la clave pública de la CA Raíz para terminar de validar la cadena?
+
+La obtiene de un archivo local seguro llamado Almacén de Certificados de Confianza (Trust Store).
+En mi host lo pude obtener ejecutando este comando:
+```bash
+openssl x509 -in /etc/ssl/certs/ISRG_Root_X1.pem -text -noout
+```
+![](<img/certificado raiz host.png>)
+
+---
